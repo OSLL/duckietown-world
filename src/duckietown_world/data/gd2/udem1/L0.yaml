@@ -1,0 +1,144 @@
+layer0:
+  tile_size: 0.585
+
+  (0, 0, 0):
+    type: floor
+  (0, 1, 0):
+    type: floor
+  (0, 2, 0):
+    type: floor
+  (0, 3, 0):
+    type: floor
+  (0, 4, 0):
+    type: floor
+  (0, 5, 0):
+    type: floor
+  (0, 6, 0):
+    type: floor
+
+  (1, 0, 0):
+    type: floor
+  (1, 1, 0):
+    angle: W
+    type: curve_left
+  (1, 2, 0):
+    angle: S
+    type: straight
+  (1, 3, 0):
+    angle: S
+    type: 3way_left
+  (1, 4, 0):
+    angle: S
+    type: straight
+  (1, 5, 0):
+    angle: S
+    type: curve_left
+  (1, 6, 0):
+    type: floor
+
+  (2, 0, 0):
+    type: floor
+  (2, 1, 0):
+    angle: W
+    type: straight
+  (2, 2, 0):
+    type: grass
+  (2, 3, 0):
+    angle: W
+    type: straight
+  (2, 4, 0):
+    type: grass
+  (2, 5, 0):
+    angle: E
+    type: straight
+  (2, 6, 0):
+    type: floor
+
+  (3, 0, 0):
+    type: floor
+  (3, 1, 0):
+    angle: W
+    type: 3way_left
+  (3, 2, 0):
+    angle: N
+    type: straight
+  (3, 3, 0):
+    angle: N
+    type: 3way_left
+  (3, 4, 0):
+    angle: N
+    type: straight
+  (3, 5, 0):
+    angle: E
+    type: 3way_left
+  (3, 6, 0):
+    type: floor
+
+  (4, 0, 0):
+    type: floor
+  (4, 1, 0):
+    angle: W
+    type: straight
+  (4, 2, 0):
+    type: asphalt
+  (4, 3, 0):
+    type: asphalt
+  (4, 4, 0):
+    type: asphalt
+  (4, 5, 0):
+    angle: E
+    type: straight
+  (4, 6, 0):
+    type: floor
+
+  (5, 0, 0):
+    type: floor
+  (5, 1, 0):
+    angle: W
+    type: straight
+  (5, 2, 0):
+    type: asphalt
+  (5, 3, 0):
+    type: asphalt
+  (5, 4, 0):
+    angle: N
+    type: curve_right
+  (5, 5, 0):
+    angle: E
+    type: curve_left
+  (5, 6, 0):
+    type: floor
+
+  (6, 0, 0):
+    type: floor
+  (6, 1, 0):
+    angle: N
+    type: curve_left
+  (6, 2, 0):
+    angle: N
+    type: straight
+  (6, 3, 0):
+    angle: N
+    type: straight
+  (6, 4, 0):
+    angle: E
+    type: curve_left
+  (6, 5, 0):
+    type: asphalt
+  (6, 6, 0):
+    type: floor
+
+  (7, 0, 0):
+    type: floor
+  (7, 1, 0):
+    type: asphalt
+  (7, 2, 0):
+    type: asphalt
+  (7, 3, 0):
+    type: asphalt
+  (7, 4, 0):
+    type: asphalt
+  (7, 5, 0):
+    type: asphalt
+  (7, 6, 0):
+    type: floor

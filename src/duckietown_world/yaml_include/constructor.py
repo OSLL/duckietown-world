@@ -70,15 +70,6 @@ class YamlIncludeConstructor:
             kwargs = loader.construct_mapping(node)
         else:
             raise TypeError('Un-supported YAML node {!r}'.format(node))
-        # if len(kwargs):
-        #     kwargs['pathname'] = kwargs.get('file') or kwargs.get('filename') or kwargs.get('pathname')
-        #     if kwargs['pathname'] is None:
-        #         raise ValueError('file/filename/pathname argument not found')
-        #     for key_node, value_node in node.value:
-        #         if loader.construct_object(key_node) == 'only':
-        #             kwargs['only'] = loader.construct_sequence(value_node)
-        #         if loader.construct_object(key_node) == 'except':
-        #             kwargs['except'] = loader.construct_sequence(value_node)
         if args:
             splt = re.split('only | except', args[0])
             splt = [s.strip() for s in splt]
@@ -243,24 +234,15 @@ class YamlIncludeConstructor:
         import re
 
         def yml_tuple_constructor(loader, node):
-            def parse_tup_el(el):
-                el = el.strip()
-                if el.isdigit():
-                    return int(el)
-                try:
-                    return float(el)
-                except ValueError:
-                    return el
-
             value = loader.construct_scalar(node)
-            tup_elements = value[1:-1].split(',')
-            if tup_elements[-1] == '':
-                tup_elements.pop(-1)
-            tup = tuple(map(parse_tup_el, tup_elements))
-            return tup
+            return literal_eval(value)
+
+        FLOAT_REGEX = r"([-+]?\d*\.\d+|\d+)"
+        INNER_TUPLE_REGEX = r"\(\s*%s+(\s*,\s*%s+)+\s*\)" % (FLOAT_REGEX, FLOAT_REGEX)
+        TUPLE_REGEX = r"\(\s*(%s|%s+)(\s*,\s*%s+)+\s*\)" % (INNER_TUPLE_REGEX, FLOAT_REGEX, FLOAT_REGEX)
 
         yaml.add_constructor(u'!tuple', yml_tuple_constructor)
-        yaml.add_implicit_resolver(u'!tuple', re.compile(r"\(\s*\w+\s*(\s*,\s*\w+)+\s*\)"))
+        yaml.add_implicit_resolver(u'!tuple', re.compile(TUPLE_REGEX))
 
     @classmethod
     def add_to_loader_class(cls, loader_class=None, tag=None, **kwargs):
