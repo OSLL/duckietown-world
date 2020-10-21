@@ -1,0 +1,11 @@
+layer2:
+  (4.8, 4.8, 0, 0, 0, 1.57):
+    family: 36h11
+    size: 0.15
+    tag_id: 300
+    relative: true
+  (6.2, 5.2, 0, 0, 0, -1.57):
+    family: 36h11
+    size: 0.15
+    tag_id: 301
+    relative: true

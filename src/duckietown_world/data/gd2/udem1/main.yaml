@@ -1,5 +1,8 @@
 main:
   layer0: !include L0.yaml
   layer1: !include L1.yaml
+  layer2: !include L2.yaml
+  layer3: !include L3.yaml
+  layer4: !include L4.yaml
   layer5: !include L5.yaml
   layer6: !include L6.yaml

@@ -2,6 +2,6 @@ layer6:
   (2.5, 4.5, 0, 0, 0, 3.14):
     kind: tree
     relative: true
-  (4.8, 2.6, 0, 0, 0, 1.57):
+  (4.3, 3.5, 0, 0, 0, 1.57):
     kind: house
     relative: true

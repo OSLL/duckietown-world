@@ -1,0 +1,4 @@
+layer3:
+  (4.2, 4.8, 0, 0, 0, 1.57):
+    hostname: watchtower01
+    relative: true
