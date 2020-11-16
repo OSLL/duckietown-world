@@ -111,7 +111,7 @@ def load_map(map_name: str) -> DuckietownMap:
     return construct_map(yaml_data)
 
 
-def load_map_layers(map_dir_name: str) -> DuckietownMap:
+def load_map_layers(map_dir_name: str) -> [DuckietownMap]:
     logger.info("loading map from %s" % map_dir_name)
 
     import os
@@ -143,108 +143,130 @@ def obj_idx():
     return obj_idx.idx
 
 
-def construct_map_layers(yaml_data_layer_main: dict) -> DuckietownMap:
+def construct_map_layers(yaml_data_layer_main: dict) -> [DuckietownMap]:
     yaml_data = yaml_data_layer_main["main"]
     from pprint import pprint
     pprint(yaml_data)
-    # ============================================= 0 layer =============================================
-    yaml_layer0 = yaml_data["layer0"]
-    tile_size = yaml_layer0["tile_size"]
-    dm = DuckietownMap(tile_size)
-    tiles = {p: t for p, t in yaml_layer0.items() if isinstance(p, tuple)}
-    assert len(tiles) > 1
+    # ============================================= frames layer =============================================
+    yaml_layer = yaml_data.get("frames", {})
+    frames = {}
+    for name, desc in yaml_layer.items():
+        pose = desc["pose"]
+        x = pose.get("x", 0)
+        y = pose.get("y", 0)
+        theta = pose.get("yaw", 0)
+        transform = SE2Transform((x, y), theta)  # TODO z, roll, pitch
+        frames[name] = {"relative_to": desc["relative_to"], "transform": transform, "object": None}
+    # ============================================= tile_maps layer =============================================
+    yaml_layer = yaml_data.get("tile_maps", {})
+    tile_maps = {}
+    for name, desc in yaml_layer.items():
+        dm = DuckietownMap(desc["tile_size"]["x"])  # TODO y-width
+        frame = frames.get(name, None)
+        if frame is None:
+            msg = "not found frame for map " + name
+            raise ValueError(msg)
+        tile_maps[name] = {"map_object": dm, "frame": frame, "tiles": {}}
+    # ============================================= tiles layer =============================================
+    yaml_layer = yaml_data.get("tiles", {})
+    for name, desc in yaml_layer.items():
+        map_name, tile_name = name.split("/")
+        assert map_name in tile_maps
+        tile_maps[map_name]["tiles"][tile_name] = desc
+    for _, tile_map in tile_maps.items():
+        tiles = tile_map["tiles"]
+        assert len(tiles) > 1
+        A = max(map(lambda t: tiles[t]["j"], tiles)) + 1
+        B = max(map(lambda t: tiles[t]["i"], tiles)) + 1
+        tm = TileMap(H=B, W=A)  # TODO k-coordinate
 
-    # Create the grid
-    A = max(map(lambda t: t[1], tiles)) + 1
-    B = max(map(lambda t: t[0], tiles)) + 1
-    tm = TileMap(H=B, W=A)
+        rect_checker = []
+        for i in range(A):
+            rect_checker.append([0] * B)
+        for _, t in tiles.items():
+            rect_checker[t["j"]][t["i"]] += 1
+        for j in range(A):
+            for i in range(B):
+                if rect_checker[j][i] == 0:
+                    msg = "missing tile at pose " + str([i, j, 0])
+                    raise ValueError(msg)
+                if rect_checker[j][i] >= 2:
+                    msg = "duplicated tile at pose " + str([i, j, 0])
+                    raise ValueError(msg)
 
-    rect_checker = []
-    for i in range(A):
-        rect_checker.append([0] * B)
-    for p in tiles:
-        rect_checker[p[1]][p[0]] += 1
-    for j in range(A):
-        for i in range(B):
-            if rect_checker[j][i] == 0:
-                msg = "missing tile at pose " + str([i, j, 0])
-                raise ValueError(msg)
-            if rect_checker[j][i] >= 2:
-                msg = "duplicated tile at pose " + str([i, j, 0])
-                raise ValueError(msg)
+        templates = load_tile_types()
 
-    templates = load_tile_types()
-
-    DEFAULT_ORIENT = "E"
-    for (p, t) in tiles.items():
-        if "angle" in t:
-            kind = t["type"].strip()
-            orient = t["angle"].strip()
-            drivable = True
-        else:
-            kind = t["type"].strip()
-            orient = DEFAULT_ORIENT
-            drivable = (kind == "4way")
-
-        tile = Tile(kind=kind, drivable=drivable)
-        if kind in templates:
-            tile.set_object(kind, templates[kind], ground_truth=SE2Transform.identity())
-
-        tm.add_tile(p[0], (A - 1) - p[1], orient, tile)
-
-    dm.set_object("tilemap", tm, ground_truth=Scale2D(tile_size))
-    # =========================================== other layers ==========================================
-    for layer_num in range(1, 7):
-        yaml_layer = yaml_data.get("layer" + str(layer_num), {})
-        for p, desc in yaml_layer.items():
-            if "kind" not in desc:
-                desc["kind"] = default_layer_kind[layer_num]
-            kind = desc["kind"]
-            obj_name = "ob%02d-%s" % (obj_idx(), kind)
-
-            obj = get_object(desc)
-
-            if layer_num == 4:
-                wrapper = PlacedObject()
-                wrapper.set_object(obj_name, obj, ground_truth=TileCoords(p[0], (tm.W - 1) - p[1], "E"))
-                obj = wrapper
-                transform = Scale2D(tile_size)
+        DEFAULT_ORIENT = "E"
+        for _, t in tiles.items():
+            kind = t["type"]
+            if "orientation" in t:
+                orient = t["orientation"]
+                drivable = True
             else:
-                transform = get_transform_(p, desc, tile_size, tm.W)
+                orient = DEFAULT_ORIENT
+                drivable = (kind == "4way")
 
-            dm.set_object(obj_name, obj, ground_truth=transform)
+            tile = Tile(kind=kind, drivable=drivable)
+            if kind in templates:
+                tile.set_object(kind, templates[kind], ground_truth=SE2Transform.identity())
+
+            tm.add_tile(t["i"], (A - 1) - t["j"], orient, tile)
+
+        wrapper = PlacedObject()
+        wrapper.set_object("tilemap", tm, ground_truth=Scale2D(tile_map["map_object"].tile_size))
+        tile_map["map_object"].set_object("tilemap_wrapper", wrapper, ground_truth=tile_map["frame"]["transform"])
+    # =========================================== watchtowers layer ==========================================
+    yaml_layer = yaml_data.get("watchtowers", {})
+    objects = {}
+    for name, desc in yaml_layer.items():
+        kind = "watchtower"
+        obj_name = "ob%02d-%s" % (obj_idx(), kind)
+        desc["kind"] = kind
+        obj = get_object(desc)
+        frame = desc["frame"]
+        depth = frame.count("/")
+        if depth not in objects:
+            objects[depth] = []
+        depth_objects = objects[depth]
+        depth_objects.append({"name": name, "obj_name": obj_name, "obj": obj, "frame_name": frame, "frame": None})
+    # =========================================== other layers ==========================================
+    # ...
+    # =========================================== binding ==========================================
+    for depth in objects:
+        for o in objects[depth]:
+            frame = frames.get(o["frame_name"], None)
+            if frame is None:
+                msg = "not found frame for object " + o["name"]
+                raise ValueError(msg)
+            o["frame"] = frame
+            frame["object"] = o
+    sorted_depths = sorted(list(objects))
+    processed_objects = {}
+    for depth in sorted_depths:
+        for o in objects[depth]:
+            if depth == 0:
+                map_name = o["name"].split("/")[0]
+                parent_object = tile_maps[map_name]["map_object"]
+            else:
+                parent_frame = o["frame"]["relative_to"]
+                parent_object = processed_objects.get(parent_frame, None)
+                if parent_object is None:
+                    msg = "not found object for frame " + parent_frame
+                    raise ValueError(msg)
+            parent_object.set_object(o["obj_name"], o["obj"], ground_truth=o["frame"]["transform"])
+            processed_objects[o["frame_name"]] = o
     # ============================================= ending =============================================
-    for it in list(iterate_by_class(tm, Tile)):
-        ob = it.object
-        if "slots" in ob.children:
-            slots = ob.children["slots"]
-            for k, v in list(slots.children.items()):
-                if not v.children:
-                    slots.remove_object(k)
-            if not slots.children:
-                ob.remove_object("slots")
-    return dm
-
-
-def get_transform_(p, desc, tile_size, W):
-    if desc.get("relative", False):
-        (u, v), r = get_uvr_relative(p, tile_size, W)
-    else:
-        if isinstance(p[0], tuple):
-            x, y = get_xy_slot(p[1])
-            i, j = p[0]
-            u, v = (x + i) * tile_size, (y + j) * tile_size
-            r = 0 if len(p) == 2 else p[4]
-        else:
-            u, v, r = p[0], p[1], p[5]
-    return SE2Transform([u, v], r)
-
-
-def get_uvr_relative(p, tile_size, W):
-    u = float(p[0]) * tile_size
-    v = float(W - p[1]) * tile_size
-    r = 0 if len(p) == 2 else -p[5]
-    return (u, v), r
+    for _, tile_map in tile_maps.items():
+        for it in list(iterate_by_class(tile_map["map_object"].children["tilemap_wrapper"].children["tilemap"], Tile)):
+            ob = it.object
+            if "slots" in ob.children:
+                slots = ob.children["slots"]
+                for k, v in list(slots.children.items()):
+                    if not v.children:
+                        slots.remove_object(k)
+                if not slots.children:
+                    ob.remove_object("slots")
+    return list(map(lambda m: tile_maps[m]["map_object"], tile_maps))
 
 
 def construct_map(yaml_data: dict) -> DuckietownMap:

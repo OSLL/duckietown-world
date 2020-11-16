@@ -8,7 +8,7 @@ from comptests import comptest, run_module_tests, get_comptests_output_dir
 
 @comptest
 def layers_map(map_name="udem1"):
-    m: dw.DuckietownMap = dw.load_map_layers(map_name)
+    m: dw.DuckietownMap = dw.load_map_layers(map_name)[0]
 
     p = geo.SE2_from_translation_angle([1.3, 0.3], 0.2)
     r = get_tile_at_point(m, p)
