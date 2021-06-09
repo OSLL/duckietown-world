@@ -11,14 +11,14 @@ bump: # v2
 	git push
 
 upload: # v3
-	aido-check-not-dirty
-	aido-check-tagged
-	aido-check-need-upload --package duckietown-world-daffy make upload-do
+	dts build_utils check-not-dirty
+	dts build_utils check-tagged
+	dts build_utils check-need-upload --package duckietown-world-daffy make upload-do
 
 upload-do:
 	rm -f dist/*
 	rm -rf src/*.egg-info
-	python setup.py sdist
+	python3 setup.py sdist
 	twine upload --skip-existing --verbose dist/*
 
 comptest_package=duckietown_world_tests
@@ -51,26 +51,26 @@ tests-coverage:
 	$(MAKE) coverage-report
 	$(MAKE) coverage-coveralls
 
-tests-LFV-coverage:
-	mkdir -p artifacts
-	$(coverage_run) `which dt-world-draw-log` --filename test-data/LFV.json --output artifacts/LFV
+# tests-LFV-coverage:
+# 	mkdir -p artifacts
+# 	$(coverage_run) `which dt-world-draw-log` --filename test-data/LFV.json --output artifacts/LFV
 
 tests-maps-coverage:
 	mkdir -p artifacts
-	$(coverage_run) `which dt-world-draw-maps` --output artifacts/maps
+	$(coverage_run) -m duckietown_world.svg_drawing.dt_draw_maps --output artifacts/maps
 
 
 tests-coverage-single-nocontracts:
 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit"  $(comptest_package)
-	-DISABLE_CONTRACTS=1 $(coverage_run)  `which compmake` $(out)  -c "rmake"
+	-DISABLE_CONTRACTS=1 $(coverage_run) -m compmake $(out)  -c "rmake"
 
 tests-coverage-single-contracts:
 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit"  $(comptest_package)
-	-DISABLE_CONTRACTS=0 $(coverage_run)  `which compmake` $(out) --contracts -c "rmake"
+	-DISABLE_CONTRACTS=0 $(coverage_run)  -m compmake $(out) --contracts -c "rmake"
 
 tests-coverage-parallel-contracts:
 	-DISABLE_CONTRACTS=1 comptests -o $(out) --nonose -c "exit" $(package)
-	-DISABLE_CONTRACTS=0 $(coverage_run)  `which compmake` $(out) --contracts -c "rparmake"
+	-DISABLE_CONTRACTS=0 $(coverage_run)  -m compmake $(out) --contracts -c "rparmake"
 
 coverage-report:
 	coverage combine
@@ -99,3 +99,18 @@ test-python-3.6-local: build-python-3.6
 
 black:
 	black -l 110 -t py38 .
+
+
+export:
+	dt-world-export-gltf --map udem1 --out out-udem1
+	scp -r out-udem1 @sandy:dev/duckietown-rendering-pyrender/code
+
+notebooks-in-docker:
+	docker run -p 8888:8888 --rm -it -v $(PWD):$(PWD) -w $(PWD) -e USER=$(USER) -v /tmp:/tmp -e HOME=/tmp/fake --user $(shell id -u):$(shell id -g)  python:3.8 bash
+
+	# export PATH=~/.local/bin:$PATH
+	# pip install duckietown-world-daffy jupyter
+	# jupyter notebook
+
+notebooks-in-docker2:
+	docker run -p 8888:8888 --rm -it -v $(PWD):$(PWD) -w $(PWD) -e USER=$(USER) -v /tmp:/tmp -e HOME=/tmp/fake --user $(shell id -u):$(shell id -g)  jupyter/scipy-notebook

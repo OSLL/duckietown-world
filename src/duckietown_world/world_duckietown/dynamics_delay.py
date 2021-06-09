@@ -1,12 +1,12 @@
 import math
-from typing import Tuple, Any
+from typing import Any, Tuple
 
 import numpy as np
 
 from duckietown_world.world_duckietown.types import TSE2v
-from .platform_dynamics import PlatformDynamicsFactory, PlatformDynamics
+from .platform_dynamics import PlatformDynamics, PlatformDynamicsFactory
 
-__all__ = ["ApplyDelay"]
+__all__ = ["ApplyDelay", "DelayedDynamics"]
 
 
 class ApplyDelay(PlatformDynamicsFactory):
@@ -19,11 +19,11 @@ class ApplyDelay(PlatformDynamicsFactory):
 
     def initialize(self, c0: TSE2v, t0: float = 0, seed: int = None) -> PlatformDynamics:
         """
-            Returns the dynamics initalized at a certain configuration.
+        Returns the dynamics initalized at a certain configuration.
 
-            :param c0: configuration in TSE2
-            :param t0: time in which to sstart
-            :param seed: seed for a possible random number generator
+        :param c0: configuration in TSE2
+        :param t0: time in which to sstart
+        :param seed: seed for a possible random number generator
 
         """
         state0 = self.factory.initialize(c0, t0, seed)
@@ -60,11 +60,11 @@ class DelayedDynamics(PlatformDynamics):
 
     def integrate(self, dt: float, commands) -> "DelayedDynamics":
         """
-            Returns the result of applying commands for dt.
+        Returns the result of applying commands for dt.
 
-            :param dt > 0: time interval
-            :param commands: class-specific commands
-            :return: the next state
+        :param dt: time interval
+        :param commands: class-specific commands
+        :return: the next state
         """
         self.commands.append(commands)
         self.timestamps.append(self.t)
@@ -73,7 +73,7 @@ class DelayedDynamics(PlatformDynamics):
         # print(f't = {self.t}, t old = {told}'  )
         state2 = self.state.integrate(dt, use_commands)
 
-        next = DelayedDynamics(
+        next_state = DelayedDynamics(
             state2,
             self.delay,
             self.t,
@@ -81,7 +81,7 @@ class DelayedDynamics(PlatformDynamics):
             commands=list(self.commands),
             timestamps=list(self.timestamps),
         )
-        return next
+        return next_state
 
     def TSE2_from_state(self) -> TSE2v:
         return self.state.TSE2_from_state()

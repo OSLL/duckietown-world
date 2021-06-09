@@ -28,8 +28,8 @@ install_requires = [
     "networkx>=2.2,<3",
     "duckietown-serialization-ds1<2",
     "svgwrite",
-    "PyGeometry-z6>=2.0.2",
-    "beautifulsoup4>=4.6.3",
+    "PyGeometry-z6>=2.0.4",
+    "beautifulsoup4>=4.6.3,<=4.7.1",
     "lxml",
     "pillow",
     "future",
@@ -37,9 +37,20 @@ install_requires = [
     "plotly",
     "oyaml",
     "markdown",
+    "zuper-ipce-z6",
+    "aido-protocols-daffy",
     "zuper-typing-z6>=6.0.66",
+    "zuper-commons-z6",
+    "six",
+    "PyContracts3",
+    "trimesh",
+    "gltflib",
+    "pyrender",
+    "coloredlogs",
+    "colorama",
+    "aido-protocols-daffy",
 ]
-tests_require = ["comptests-z6"]
+tests_require = ["comptests-z6", "compmake-z6>=6.1.1"]
 system_version = tuple(sys.version_info)[:3]
 
 if system_version < (3, 7):
@@ -64,6 +75,9 @@ setup(
         "console_scripts": [
             # 'dt-world-draw-log = duckietown_world.svg_drawing:draw_logs_main',
             "dt-world-draw-maps = duckietown_world.svg_drawing:draw_maps_main",
+            "dt-world-export-gltf = duckietown_world.gltf:gltf_export_main",
+            "dt-make-scenarios =duckietown_world.world_duckietown.sampling:make_scenario_main",
+            "dt-compile-textures=duckietown_world.world_duckietown.compile_textures:compile_textures_main",
         ]
     },
 )

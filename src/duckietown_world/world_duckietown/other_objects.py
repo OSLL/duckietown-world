@@ -1,8 +1,5 @@
-# coding=utf-8
-
-from duckietown_world import logger
-from duckietown_world.svg_drawing.misc import mime_from_fn, draw_axes
-
+from . import logger
+from duckietown_world.svg_drawing.misc import draw_axes, mime_from_fn
 from ..geo import PlacedObject
 
 __all__ = [
@@ -42,6 +39,7 @@ __all__ = [
 class GenericObject(PlacedObject):
     def __init__(self, kind, **kwargs):
         self.kind = kind
+        # noinspection PyArgumentList,PyArgumentList
         PlacedObject.__init__(self, **kwargs)
 
     def params_to_json_dict(self):
@@ -53,6 +51,11 @@ class GenericObject(PlacedObject):
 
 
 class Duckie(PlacedObject):
+    def __init__(self, color: str = "yellow", **kwargs):
+        self.color = color
+        # noinspection PyArgumentList
+        PlacedObject.__init__(self, **kwargs)
+
     def draw_svg(self, drawing, g):
         c = drawing.circle(center=(0, 0), r=0.065, fill="yellow", stroke="black", stroke_width=0.01)
         g.add(c)
@@ -64,7 +67,7 @@ class Decoration(PlacedObject):
 
 class Tree(Decoration):
     def draw_svg(self, drawing, g):
-        c = drawing.circle(center=(0, 0), r=0.25, fill="green", stroke="black", stroke_width=0.01)
+        c = drawing.circle(center=(0, 0), r=0.05, fill="green", stroke="black", stroke_width=0.01)
         g.add(c)
 
 
@@ -82,7 +85,11 @@ class Bus(Vehicle):
     def draw_svg(self, drawing, g):
         L, W = 0.3, 0.2
         c = drawing.rect(
-            insert=(-L / 2, -W / 2), fill="grey", size=(L, W), stroke_width="0.01", stroke="#eeeeee",
+            insert=(-L / 2, -W / 2),
+            fill="grey",
+            size=(L, W),
+            stroke_width="0.01",
+            stroke="#eeeeee",
         )
         g.add(c)
 
@@ -91,7 +98,11 @@ class Truck(Vehicle):
     def draw_svg(self, drawing, g):
         L, W = 0.4, 0.2
         c = drawing.rect(
-            insert=(-L / 2, -W / 2), fill="blue", size=(L, W), stroke_width="0.01", stroke="#eeeeee",
+            insert=(-L / 2, -W / 2),
+            fill="blue",
+            size=(L, W),
+            stroke_width="0.01",
+            stroke="#eeeeee",
         )
         g.add(c)
 
@@ -100,7 +111,11 @@ class House(Decoration):
     def draw_svg(self, drawing, g):
         L, W = 0.5, 0.25
         c = drawing.rect(
-            insert=(-L / 2, -W / 2), fill="red", size=(L, W), stroke_width="0.01", stroke="#eeeeee",
+            insert=(-L / 2, -W / 2),
+            fill="red",
+            size=(L, W),
+            stroke_width="0.01",
+            stroke="#eeeeee",
         )
         g.add(c)
 
@@ -109,7 +124,11 @@ class Barrier(Decoration):
     def draw_svg(self, drawing, g):
         L, W = 0.5, 0.25
         c = drawing.rect(
-            insert=(-L / 2, -W / 2), fill="pink", size=(L, W), stroke_width="0.01", stroke="#eeeeee",
+            insert=(-L / 2, -W / 2),
+            fill="pink",
+            size=(L, W),
+            stroke_width="0.01",
+            stroke="#eeeeee",
         )
         g.add(c)
 
@@ -119,13 +138,19 @@ class Building(Decoration):
     def draw_svg(self, drawing, g):
         L, W = 0.5, 0.25
         c = drawing.rect(
-            insert=(-L / 2, -W / 2), fill="red", size=(L, W), stroke_width="0.01", stroke="#eeeeee",
+            insert=(-L / 2, -W / 2),
+            fill="red",
+            size=(L, W),
+            stroke_width="0.01",
+            stroke="#eeeeee",
         )
         g.add(c)
 
 
 class Sign(PlacedObject):
     def __init__(self, tag=None, **kwargs):
+        # noinspection PyArgumentList
+
         PlacedObject.__init__(self, **kwargs)
         self.tag = tag
 
@@ -145,10 +170,10 @@ class Sign(PlacedObject):
         try:
             from .map_loading import get_texture_file
 
-            fn = get_texture_file(texture)
-        except KeyError:
-            msg = "Cannot find texture for %s" % texture
-            logger.warning(msg)
+            fn = get_texture_file(texture)[0]
+        except KeyError as e:
+            msg = f"Cannot find texture for {texture!r}"
+            logger.warning(msg, e=e)
 
             c = drawing.rect(
                 insert=(x, y),

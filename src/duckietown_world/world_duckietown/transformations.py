@@ -3,25 +3,42 @@ from typing import List
 
 from duckietown_world import GenericSequence, PlacedObject, TransformSequence
 
+from duckietown_world.seqs.tsequence import Timestamp
+from zuper_commons.types import ZValueError
+
 __all__ = [
     "ChooseTime",
     # 'RemoveVariable',
     # 'RemoveStatic',
     "get_sampling_points",
+    "is_static",
+    "ChooseTimeOrPrevious",
 ]
 
-from duckietown_world.seqs.tsequence import Timestamp
-from zuper_commons.types import ZValueError
 
-
-class ChooseTime(object):
-    def __init__(self, t):
+class ChooseTime:
+    def __init__(self, t: float):
         self.t = t
 
     def __call__(self, ob):
         # if isinstance(ob, Sequence):
         if hasattr(ob, "at"):
+            # noinspection PyCallingNonCallable
             ob = ob.at(self.t)
+            return ob
+        else:
+            return ob
+
+
+class ChooseTimeOrPrevious:
+    def __init__(self, t: float):
+        self.t = t
+
+    def __call__(self, ob):
+        # if isinstance(ob, Sequence):
+        if hasattr(ob, "at_or_previous"):
+            # noinspection PyCallingNonCallable
+            ob = ob.at_or_previous(self.t)
             return ob
         else:
             return ob

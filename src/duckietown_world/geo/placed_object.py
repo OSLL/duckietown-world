@@ -2,19 +2,18 @@
 
 import copy
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Union, Callable
+from typing import Callable, Dict, List, Tuple, Union
 
 import yaml
-from duckietown_serialization_ds1 import Serializable
-
-
-from duckietown_world.seqs import UndefinedAtTime
 from zuper_commons.text import indent
 from zuper_commons.types import check_isinstance
+
+from duckietown_serialization_ds1 import Serializable
+from duckietown_world.seqs import SampledSequence, UndefinedAtTime
 from .rectangular_area import RectangularArea
 from .transforms import Transform
 
-__all__ = ["PlacedObject", "SpatialRelation", "GroundTruth", "get_object_tree", "FQN"]
+__all__ = ["PlacedObject", "SpatialRelation", "GroundTruth", "get_object_tree", "FQN", "get_child_transform"]
 
 FQN = Tuple[str, ...]
 
@@ -51,7 +50,7 @@ class SpatialRelation(Serializable):
 
 class GroundTruth(SpatialRelation):
     def __repr__(self):
-        return "GroundTruth(%r -> %r  %s)" % (self.a, self.b, self.transform)
+        return f"GroundTruth({self.a!r} -> {self.b!r}  {self.transform})"
 
     @classmethod
     def params_from_json_dict(cls, d):
@@ -66,7 +65,7 @@ root: FQN = ()
 
 @dataclass
 class PlacedObject(Serializable):
-    children: Dict[str, "PlacedObject"] = field(default_factory=dict)
+    children: "Dict[str, PlacedObject]" = field(default_factory=dict)
     spatial_relations: Dict[str, SpatialRelation] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -79,7 +78,7 @@ class PlacedObject(Serializable):
                     sr = GroundTruth(a=root, b=b, transform=v)
                     self.spatial_relations[k] = sr
                 else:
-                    msg = 'What is the "%s" referring to?' % k
+                    msg = f'What is the "{k}" referring to?'
                     raise ValueError(msg)
 
         if not self.spatial_relations:
@@ -99,6 +98,7 @@ class PlacedObject(Serializable):
         children = dict((k, v) for k, v in self.children.items())
         spatial_relations = dict((k, v) for k, v in self.spatial_relations.items())
         kwargs.update(dict(children=children, spatial_relations=spatial_relations))
+        # noinspection PyArgumentList
         return type(self)(*args, **kwargs)
 
     def _copy(self):
@@ -183,7 +183,9 @@ class PlacedObject(Serializable):
 
         return res
 
-    def set_object(self, name: str, ob: "PlacedObject", **transforms: SpatialRelation):
+    def set_object(
+        self, name: str, ob: "PlacedObject", **transforms: Union[Transform, SpatialRelation, SampledSequence]
+    ):
         assert self is not ob
         self.children[name] = ob
         type2klass = {"ground_truth": GroundTruth}
@@ -218,17 +220,25 @@ def get_child_transform(po: PlacedObject, child: str) -> Transform:
 
 
 def get_object_tree(
-    po: PlacedObject, levels: int = 100, spatial_relations: bool = False, attributes: bool = False,
+    po: PlacedObject,
+    levels: int = 100,
+    spatial_relations: bool = False,
+    attributes: bool = False,
 ) -> str:
-    ss = []
-    ss.append("%s" % type(po).__name__)
+    ss = [f"{type(po).__name__}"]
     d = po.params_to_json_dict()
     d.pop("children", None)
     d.pop("spatial_relations", None)
 
     if attributes:
         if d:
-            ds = yaml.safe_dump(d, encoding="utf-8", indent=4, allow_unicode=True, default_flow_style=False,)
+            ds = yaml.safe_dump(
+                d,
+                encoding="utf-8",
+                indent=4,
+                allow_unicode=True,
+                default_flow_style=False,
+            )
             if isinstance(ds, bytes):
                 ds = ds.decode("utf-8")
             ss.append("\n" + indent(ds, " "))
@@ -245,7 +255,10 @@ def get_object_tree(
                 prefix1 = "└ %s ┐ " % child_name
                 prefix2 = "  %s │ " % (" " * len(child_name))
             c = get_object_tree(
-                child, attributes=attributes, spatial_relations=spatial_relations, levels=levels - 1,
+                child,
+                attributes=attributes,
+                spatial_relations=spatial_relations,
+                levels=levels - 1,
             )
             sc = indent(c, prefix2, prefix1)
             n = max(len(_) for _ in sc.split("\n"))

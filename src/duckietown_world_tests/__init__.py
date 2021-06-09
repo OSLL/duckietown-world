@@ -1,4 +1,7 @@
-# coding=utf-8
+from zuper_commons.logs import ZLogger
+
+logger = ZLogger(__name__)
+
 from .dynamics import *
 from .lane_pose import *
 from .measurements import *

@@ -1,20 +1,25 @@
 # coding=utf-8
 from abc import ABCMeta, abstractmethod
+from typing import Sequence
 
 import geometry
 import geometry as geo
 import numpy as np
 from contracts import contract, new_contract
+from geometry import SE2value
+
 from duckietown_serialization_ds1 import Serializable
 from duckietown_world.seqs import GenericSequence
 from duckietown_world.seqs.tsequence import Timestamp
 
-__all__ = ["TransformSequence", "Transform", "SE2Transform", "Scale2D", "Matrix2D"]
-
-# SE2value = NewType("SE2value", np.ndarray)
-from geometry import SE2value
-
-_ = SE2value
+__all__ = [
+    "TransformSequence",
+    "Transform",
+    "SE2Transform",
+    "Scale2D",
+    "Matrix2D",
+    "VariableTransformSequence",
+]
 
 
 class Transform(metaclass=ABCMeta):
@@ -75,8 +80,11 @@ class VariableTransformSequence(TransformSequence, GenericSequence[Transform]): 
 
 
 class SE2Transform(Transform, Serializable):
+    p: np.ndarray
+    theta: float
+
     @contract(p="seq[2](float|int)")
-    def __init__(self, p, theta):
+    def __init__(self, p: Sequence[float], theta: float):
         self.p = np.array(p, dtype="float64")
         self.theta = float(theta)
 
@@ -96,15 +104,13 @@ class SE2Transform(Transform, Serializable):
 
     def params_to_json_dict(self):
         res = {}
-        if np.allclose(self.theta, 0):
-            pass
+
+        for a in [-270, -180, -90, -45, +45, 90, 180, 270]:
+            if np.allclose(a, np.rad2deg(self.theta)):
+                res["theta_deg"] = a
+                break
         else:
-            for a in [-270, -180, -90, -45, +45, 90, 180, 270]:
-                if np.allclose(a, np.rad2deg(self.theta)):
-                    res["theta_deg"] = a
-                    break
-            else:
-                res["theta"] = self.theta
+            res["theta"] = self.theta
         if np.allclose(np.linalg.norm(self.p), 0):
             pass
         else:
